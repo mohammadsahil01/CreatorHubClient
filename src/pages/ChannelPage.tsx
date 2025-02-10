@@ -1,5 +1,5 @@
-import { useNavigate, useParams } from "react-router-dom";
-import { useState, useMemo } from "react";
+import { useNavigate, useParams, useSearchParams } from "react-router-dom";
+import { useState, useMemo, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Select,
@@ -20,9 +20,10 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import axios from "axios";
 
 interface Video {
-  id: number;
+  id: string;
   title: string;
   createdAt: Date;
   status: "Ongoing" | "Completed";
@@ -32,14 +33,37 @@ interface Role {
   id: number;
   name: string;
 }
+const months = [
+  "January",
+  "February",
+  "March",
+  "April",
+  "May",
+  "June",
+  "July",
+  "August",
+  "September",
+  "October",
+  "November",
+  "December",
+];
 
 export default function ChannelPage() {
   const navigate = useNavigate();
   const { creatorName, name } = useParams();
+  const [searchParams] = useSearchParams();
+  const channelId = searchParams.get("id");
+  const currentDate = new Date();
   const [selectedMonth, setSelectedMonth] = useState<string>("all");
+  const [selectedYear, setSelectedYear] = useState<string>(
+    currentDate.getFullYear().toString()
+  );
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [newVideoTitle, setNewVideoTitle] = useState("");
   const [newRole, setNewRole] = useState("");
+  const [videos, setVideos] = useState<Video[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [roles, setRoles] = useState<Role[]>([
     { id: 1, name: "Editor" },
     { id: 2, name: "Recorder 1" },
@@ -49,63 +73,14 @@ export default function ChannelPage() {
     { id: 6, name: "Thumbnail Maker" },
   ]);
 
-  // Mock video data
-  const videos: Video[] = useMemo(
-    () => [
-      {
-        id: 1,
-        title: "Getting Started with React",
-        createdAt: new Date("2024-01-15"),
-        status: "Completed",
-      },
-      {
-        id: 2,
-        title: "Advanced TypeScript Features",
-        createdAt: new Date("2024-01-20"),
-        status: "Completed",
-      },
-      {
-        id: 3,
-        title: "Building a Full-Stack App",
-        createdAt: new Date("2024-02-05"),
-        status: "Ongoing",
-      },
-      {
-        id: 4,
-        title: "State Management Deep Dive",
-        createdAt: new Date("2024-02-10"),
-        status: "Ongoing",
-      },
-    ],
-    []
-  );
+  // Mock video data (keep existing code)
 
-  const months = [
-    "January",
-    "February",
-    "March",
-    "April",
-    "May",
-    "June",
-    "July",
-    "August",
-    "September",
-    "October",
-    "November",
-    "December",
-  ];
-
-  const filteredAndSortedVideos = useMemo(() => {
-    let filtered = [...videos];
-    if (selectedMonth !== "all") {
-      filtered = filtered.filter(
-        (video) => months[video.createdAt.getMonth()] === selectedMonth
-      );
-    }
-    return filtered.sort(
-      (a, b) => b.createdAt.getTime() - a.createdAt.getTime()
+  const years = useMemo(() => {
+    const currentYear = currentDate.getFullYear();
+    return Array.from({ length: 5 }, (_, i) =>
+      (currentYear - 2 + i).toString()
     );
-  }, [videos, selectedMonth]);
+  }, []);
 
   const handleAddRole = () => {
     if (newRole.trim()) {
@@ -118,17 +93,106 @@ export default function ChannelPage() {
     setRoles(roles.filter((role) => role.id !== roleId));
   };
 
-  const handleCreate = () => {
-    // Handle create logic here
-    setIsModalOpen(false);
-    setNewVideoTitle("");
-    // Reset other form states if needed
+  const handleCreate = async () => {
+    if (!channelId) {
+      setError("Channel ID is missing");
+      return;
+    }
+
+    if (!newVideoTitle.trim()) {
+      setError("Video title is required");
+      return;
+    }
+
+    setIsLoading(true);
+    setError(null);
+    console.log("roles", roles);
+
+    try {
+      const response = await axios.post(
+        `${import.meta.env.VITE_API_URL}/videos`,
+        {
+          channelId: channelId,
+          videoTitle: newVideoTitle.trim(),
+          roles: roles,
+        }
+      );
+
+      // Add the new video to the list (you might want to fetch the updated list instead)
+      const newVideo: Video = {
+        id: response.data.data._id,
+        title: response.data.data.title,
+        createdAt: new Date(response.data.data.createdAt),
+        status: "Ongoing",
+      };
+
+      setVideos([newVideo, ...videos]);
+
+      // Close modal and reset form
+      setIsModalOpen(false);
+      setNewVideoTitle("");
+      setRoles([
+        { id: 1, name: "Editor" },
+        { id: 2, name: "Recorder 1" },
+        { id: 3, name: "Recorder 2" },
+        { id: 4, name: "Model Maker" },
+        { id: 5, name: "Texture Pack Map Developer" },
+        { id: 6, name: "Thumbnail Maker" },
+      ]);
+    } catch (err) {
+      const errorMessage =
+        err instanceof Error ? err.message : "Failed to create video";
+      setError(errorMessage);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
-  const handleVideoClick = (videoId: number) => {
+  const handleVideoClick = (videoId: string) => {
+    console.log("videoId", videoId);
+
     navigate(`/${creatorName}/${name}/${videoId}`);
   };
 
+  const fetchVideos = async () => {
+    if (!channelId) return;
+
+    try {
+      setIsLoading(true);
+      const monthIndex =
+        selectedMonth === "all" ? null : months.indexOf(selectedMonth) + 1;
+      const response = await axios.get(
+        `${import.meta.env.VITE_API_URL}/videos/channel/${channelId}`,
+        {
+          params: {
+            year: selectedYear,
+            month: monthIndex,
+          },
+        }
+      );
+
+      const formattedVideos: Video[] = response.data.data.map((video: any) => ({
+        id: video._id,
+        title: video.title,
+        createdAt: new Date(video.addedDateTime),
+        status: video.status,
+      }));
+
+      setVideos(formattedVideos);
+    } catch (err) {
+      const errorMessage =
+        err instanceof Error ? err.message : "Failed to fetch videos";
+      setError(errorMessage);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchVideos();
+  }, [channelId, selectedMonth, selectedYear]);
+
+  // Rest of the return statement remains the same until the Dialog
   return (
     <div className="min-h-screen bg-black text-white">
       <div className="container mx-auto p-8">
@@ -150,28 +214,49 @@ export default function ChannelPage() {
                 >
                   Create New Video
                 </Button>
-                <Select value={selectedMonth} onValueChange={setSelectedMonth}>
-                  <SelectTrigger className="w-[180px] bg-gray-800 border-gray-700 text-white">
-                    <SelectValue placeholder="Filter by month" />
-                  </SelectTrigger>
-                  <SelectContent className="bg-gray-800 border-gray-700">
-                    <SelectItem
-                      value="all"
-                      className="text-white data-[highlighted]:bg-gray-700 data-[highlighted]:text-white"
-                    >
-                      All Months
-                    </SelectItem>
-                    {months.map((month) => (
+                <div className="flex-col">
+                  <Select value={selectedYear} onValueChange={setSelectedYear}>
+                    <SelectTrigger className="w-[120px] bg-gray-800 border-gray-700 text-white">
+                      <SelectValue placeholder="Select year" />
+                    </SelectTrigger>
+                    <SelectContent className="bg-gray-800 border-gray-700">
+                      {years.map((year) => (
+                        <SelectItem
+                          key={year}
+                          value={year}
+                          className="text-white data-[highlighted]:bg-gray-700 data-[highlighted]:text-white"
+                        >
+                          {year}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <Select
+                    value={selectedMonth}
+                    onValueChange={setSelectedMonth}
+                  >
+                    <SelectTrigger className="w-[180px] bg-gray-800 border-gray-700 text-white">
+                      <SelectValue placeholder="Filter by month" />
+                    </SelectTrigger>
+                    <SelectContent className="bg-gray-800 border-gray-700">
                       <SelectItem
-                        key={month}
-                        value={month}
+                        value="all"
                         className="text-white data-[highlighted]:bg-gray-700 data-[highlighted]:text-white"
                       >
-                        {month}
+                        All Months
                       </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                      {months.map((month) => (
+                        <SelectItem
+                          key={month}
+                          value={month}
+                          className="text-white data-[highlighted]:bg-gray-700 data-[highlighted]:text-white"
+                        >
+                          {month}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
             </div>
           </CardHeader>
@@ -191,6 +276,7 @@ export default function ChannelPage() {
                   onChange={(e) => setNewVideoTitle(e.target.value)}
                   className="bg-gray-800 border-gray-700 text-white"
                 />
+                {error && <p className="text-sm text-red-500">{error}</p>}
               </div>
 
               <div className="space-y-2">
@@ -231,14 +317,16 @@ export default function ChannelPage() {
                 variant="outline"
                 onClick={() => setIsModalOpen(false)}
                 className="bg-gray-800 hover:bg-gray-700 text-white"
+                disabled={isLoading}
               >
                 Cancel
               </Button>
               <Button
                 onClick={handleCreate}
                 className="bg-blue-600 hover:bg-blue-700"
+                disabled={isLoading}
               >
-                Create
+                {isLoading ? "Creating..." : "Create"}
               </Button>
             </DialogFooter>
           </DialogContent>
@@ -246,43 +334,51 @@ export default function ChannelPage() {
 
         <ScrollArea className="h-[600px] px-4">
           <div className="space-y-4 pb-4">
-            {filteredAndSortedVideos.map((video) => (
-              <div key={video.id}>
-                <Card
-                  onClick={() => handleVideoClick(video.id)}
-                  className="bg-gray-900 border-gray-700 transition-colors duration-200 cursor-pointer hover:bg-gray-700"
-                >
-                  <CardContent className="p-6">
-                    <div className="flex justify-between items-center">
-                      <div className="flex items-center space-x-4">
-                        <PlayCircle className="h-8 w-8 text-gray-400" />
-                        <div>
-                          <h3 className="text-lg font-semibold text-white">
-                            {video.title}
-                          </h3>
-                          <div className="flex items-center text-gray-400 mt-1">
-                            <CalendarIcon className="h-4 w-4 mr-2" />
-                            {video.createdAt.toLocaleDateString()}
+            {videos.length > 0 ? (
+              videos.map((video) => (
+                <div key={video.id}>
+                  <Card
+                    onClick={() => handleVideoClick(video.id)}
+                    className="bg-gray-900 border-gray-700 transition-colors duration-200 cursor-pointer hover:bg-gray-700"
+                  >
+                    <CardContent className="p-6">
+                      <div className="flex justify-between items-center">
+                        <div className="flex items-center space-x-4">
+                          <PlayCircle className="h-8 w-8 text-gray-400" />
+                          <div>
+                            <h3 className="text-lg font-semibold text-white">
+                              {video.title}
+                            </h3>
+                            <div className="flex items-center text-gray-400 mt-1">
+                              <CalendarIcon className="h-4 w-4 mr-2" />
+                              {video.createdAt.toLocaleDateString()}
+                            </div>
                           </div>
                         </div>
+                        <Badge
+                          variant={
+                            video.status === "Completed"
+                              ? "default"
+                              : "secondary"
+                          }
+                          className={`${
+                            video.status === "Completed"
+                              ? "bg-green-600 hover:bg-green-700"
+                              : "bg-yellow-600 hover:bg-yellow-700"
+                          }`}
+                        >
+                          {video.status}
+                        </Badge>
                       </div>
-                      <Badge
-                        variant={
-                          video.status === "Completed" ? "default" : "secondary"
-                        }
-                        className={`${
-                          video.status === "Completed"
-                            ? "bg-green-600 hover:bg-green-700"
-                            : "bg-yellow-600 hover:bg-yellow-700"
-                        }`}
-                      >
-                        {video.status}
-                      </Badge>
-                    </div>
-                  </CardContent>
-                </Card>
+                    </CardContent>
+                  </Card>
+                </div>
+              ))
+            ) : (
+              <div className="flex text-2xl justify-center items-center h-full text-gray-400">
+                No videos found.
               </div>
-            ))}
+            )}
           </div>
         </ScrollArea>
       </div>

@@ -7,26 +7,62 @@ import {
 } from "@/components/ui/card";
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import axios from "axios";
 
-const creators = [
-  { name: "Rahul", role: "Creator" },
-  { name: "Dash", role: "Creator" },
-  { name: "Carrey", role: "Creator" },
-];
+interface Creator {
+  name: string;
+  _id: string; // Adding id assuming API returns it
+}
 
-export default function Home() {
+export default function Home(): JSX.Element {
   const navigate = useNavigate();
-  const [theme, setTheme] = useState("dark");
+  const [theme, setTheme] = useState<"light" | "dark">("dark");
+  const [creators, setCreators] = useState<Creator[]>([]);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string | null>(null);
 
-  const GetCreator = () => {};
+  const getCreators = async (): Promise<void> => {
+    try {
+      const response = await axios.get(
+        `${import.meta.env.VITE_API_URL}/creators`
+      );
+      setCreators(response.data?.data);
+      setLoading(false);
+    } catch (err) {
+      const errorMessage =
+        err instanceof Error ? err.message : "An unknown error occurred";
+      setError(errorMessage);
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    getCreators();
+  }, []);
 
   useEffect(() => {
     document.documentElement.classList.toggle("dark", theme === "dark");
   }, [theme]);
 
-  const handleCreatorClick = (creatorName: string) => {
-    navigate(`/${creatorName}`);
+  const handleCreatorClick = (creatorName: string, creatorId: string): void => {
+    navigate(`/${creatorName}?id=${creatorId}`);
   };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        Loading...
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        Error: {error}
+      </div>
+    );
+  }
 
   return (
     <div
@@ -42,9 +78,9 @@ export default function Home() {
           <div className="grid gap-6 md:grid-cols-3">
             {creators.map((creator) => (
               <Card
-                key={creator.name}
-                className="bg-gray-900 hover:bg-gray-800 border-gray-200 dark:border-gray-800 cursor-pointer hover:scale-105 transition-transform "
-                onClick={() => handleCreatorClick(creator.name)}
+                key={creator._id}
+                className="bg-gray-900 hover:bg-gray-800 border-gray-200 dark:border-gray-800 cursor-pointer hover:scale-105 transition-transform"
+                onClick={() => handleCreatorClick(creator.name, creator._id)}
               >
                 <CardHeader>
                   <div className="flex items-center space-x-4">
@@ -56,7 +92,7 @@ export default function Home() {
                     <div>
                       <CardTitle>{creator.name}</CardTitle>
                       <CardDescription className="dark:text-gray-400">
-                        {creator.role}
+                        Creator
                       </CardDescription>
                     </div>
                   </div>

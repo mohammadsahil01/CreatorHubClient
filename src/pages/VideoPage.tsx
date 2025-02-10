@@ -1,5 +1,6 @@
 import { useParams } from "react-router-dom";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import axios from "axios";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -17,8 +18,8 @@ import { CalendarIcon, Clock, Save, Edit2, Plus } from "lucide-react";
 import { Input } from "@/components/ui/input";
 
 interface Role {
-  id: number;
-  name: string;
+  _id: string;
+  roleName: string;
   assignedTo: string;
   isEditing: boolean;
   tempValue: string;
@@ -30,104 +31,138 @@ export default function VideoPage() {
   const [showAddRole, setShowAddRole] = useState(false);
   const [newRoleName, setNewRoleName] = useState("");
   const [status, setStatus] = useState<"Ongoing" | "Completed">("Ongoing");
-
-  // Mock data - replace with actual data fetching
-  const [videoData] = useState({
-    title: "Building a Full-Stack App",
-    createdAt: new Date("2024-02-05T14:30:00"),
-    roles: [
-      {
-        id: 1,
-        name: "Editor",
-        assignedTo: "",
-        isEditing: false,
-        tempValue: "",
-      },
-      {
-        id: 2,
-        name: "Recorder 1",
-        assignedTo: "",
-        isEditing: false,
-        tempValue: "",
-      },
-      {
-        id: 3,
-        name: "Recorder 2",
-        assignedTo: "",
-        isEditing: false,
-        tempValue: "",
-      },
-      {
-        id: 4,
-        name: "Model Maker",
-        assignedTo: "",
-        isEditing: false,
-        tempValue: "",
-      },
-      {
-        id: 5,
-        name: "Texture Pack Map Developer",
-        assignedTo: "",
-        isEditing: false,
-        tempValue: "",
-      },
-      {
-        id: 6,
-        name: "Thumbnail Maker",
-        assignedTo: "",
-        isEditing: false,
-        tempValue: "",
-      },
-    ],
+  const [videoData, setVideoData] = useState({
+    title: "",
+    createdAt: new Date(),
+    roles: [] as Role[],
   });
+  const [roles, setRoles] = useState<Role[]>([]);
 
-  const [roles, setRoles] = useState<Role[]>(videoData.roles);
+  // Fetch video details from the API
+  useEffect(() => {
+    const fetchVideoDetails = async () => {
+      try {
+        const response = await axios.get(
+          `${import.meta.env.VITE_API_URL}/videos/${videoId}`
+        );
+        const data = response.data?.data;
 
-  const handleEdit = (roleId: number) => {
+        // Transform roles to include isEditing and tempValue
+        const transformedRoles = data.roles.map((role: any) => ({
+          ...role,
+          isEditing: false,
+          tempValue: role.assignedTo || "",
+        }));
+
+        // Update state with fetched data
+        setVideoData({
+          title: data.title,
+          createdAt: new Date(data.createdAt),
+          roles: transformedRoles,
+        });
+        setRoles(transformedRoles);
+        setStatus(data.status);
+      } catch (error) {
+        console.error("Error fetching video details:", error);
+      }
+    };
+
+    fetchVideoDetails();
+  }, [videoId]);
+
+  const handleEdit = (roleId: string) => {
     setRoles(
       roles.map((role) =>
-        role.id === roleId
+        role._id === roleId
           ? { ...role, isEditing: true, tempValue: role.assignedTo }
           : role
       )
     );
   };
 
-  const handleSave = (roleId: number) => {
+  const handleSave = async (roleId: string) => {
+    const roleToUpdate = roles.find((role) => role._id === roleId);
+    if (!roleToUpdate) return;
+
+    // Check if tempValue is empty
+    if (!roleToUpdate.tempValue?.trim()) {
+      // Reset isEditing and tempValue
+      setRoles(
+        roles.map((role) =>
+          role._id === roleId
+            ? { ...role, isEditing: false, tempValue: "" }
+            : role
+        )
+      );
+      return; // Exit the function early
+    }
+
+    try {
+      // Make a PUT request to assign the role
+      await axios.put(
+        `${
+          import.meta.env.VITE_API_URL
+        }/videos/${videoId}/roles/${roleId}/assign`,
+        { assigneeName: roleToUpdate.tempValue }
+      );
+
+      // Update the state if the API call is successful
+      setRoles(
+        roles.map((role) =>
+          role._id === roleId
+            ? { ...role, isEditing: false, assignedTo: role.tempValue }
+            : role
+        )
+      );
+    } catch (error) {
+      console.error("Error assigning role:", error);
+    }
+  };
+  const handleInputChange = (roleId: string, value: string) => {
     setRoles(
       roles.map((role) =>
-        role.id === roleId
-          ? { ...role, isEditing: false, assignedTo: role.tempValue }
-          : role
+        role._id === roleId ? { ...role, tempValue: value } : role
       )
     );
   };
 
-  const handleInputChange = (roleId: number, value: string) => {
-    setRoles(
-      roles.map((role) =>
-        role.id === roleId ? { ...role, tempValue: value } : role
-      )
-    );
+  const handleStatusChange = async () => {
+    try {
+      await axios.put(`${import.meta.env.VITE_API_URL}/videos/${videoId}`, {
+        status: "Completed",
+      });
+
+      setStatus("Completed");
+      setShowAlert(false);
+    } catch (error) {
+      console.error("Error updating video status:", error);
+    }
   };
 
-  const handleStatusChange = () => {
-    setStatus("Completed");
-    setShowAlert(false);
-  };
-
-  const handleAddRole = () => {
+  const handleAddRole = async () => {
     if (newRoleName.trim()) {
-      const newRole: Role = {
-        id: Math.max(...roles.map((r) => r.id)) + 1,
-        name: newRoleName.trim(),
-        assignedTo: "",
-        isEditing: false,
-        tempValue: "",
-      };
-      setRoles([...roles, newRole]);
-      setNewRoleName("");
-      setShowAddRole(false);
+      try {
+        // Make a POST request to add the new role
+        const response = await axios.post(
+          `${import.meta.env.VITE_API_URL}/videos/${videoId}/roles`,
+          { customRoleName: newRoleName.trim() }
+        );
+
+        // If the API call is successful, update the state with the new role
+        const newRole = {
+          _id: response.data.data._id, // Use the ID returned by the backend
+          roleName: newRoleName.trim(),
+          assignedTo: "",
+          isEditing: false,
+          tempValue: "",
+        };
+
+        setRoles([...roles, newRole]);
+        setNewRoleName("");
+        setShowAddRole(false);
+      } catch (error) {
+        console.error("Error adding new role:", error);
+      }
     }
   };
 
@@ -182,10 +217,10 @@ export default function VideoPage() {
             <div className="space-y-4">
               {roles.map((role) => (
                 <div
-                  key={role.id}
+                  key={role._id}
                   className="flex items-center justify-between p-4 bg-gray-800 rounded-lg"
                 >
-                  <span className="text-lg font-medium">{role.name}</span>
+                  <span className="text-lg font-medium">{role.roleName}</span>
                   <div className="flex items-center space-x-2">
                     {role.isEditing ? (
                       <>
@@ -193,13 +228,13 @@ export default function VideoPage() {
                           placeholder="Assign person"
                           value={role.tempValue}
                           onChange={(e) =>
-                            handleInputChange(role.id, e.target.value)
+                            handleInputChange(role._id, e.target.value)
                           }
                           className="bg-gray-700 border-gray-600 text-white w-48"
                         />
                         <Button
                           size="sm"
-                          onClick={() => handleSave(role.id)}
+                          onClick={() => handleSave(role._id)}
                           className="bg-green-600 hover:bg-green-700"
                         >
                           <Save className="h-4 w-4" />
@@ -212,7 +247,7 @@ export default function VideoPage() {
                         </span>
                         <Button
                           size="sm"
-                          onClick={() => handleEdit(role.id)}
+                          onClick={() => handleEdit(role._id)}
                           className="bg-blue-600 hover:bg-blue-700"
                         >
                           <Edit2 className="h-4 w-4" />

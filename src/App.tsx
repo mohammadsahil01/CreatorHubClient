@@ -12,10 +12,7 @@ function App() {
           <Route path="/" element={<Home />} />
           <Route path="/:creatorName" element={<CreatorPage />} />
           <Route path="/:creatorName/:name" element={<ChannelPage />} />
-          <Route
-            path="/:creatorName/:channelId/:videoId"
-            element={<VideoPage />}
-          />
+          <Route path="/:creatorName/:name/:videoId" element={<VideoPage />} />
         </Routes>
       </div>
     </BrowserRouter>
