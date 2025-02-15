@@ -134,7 +134,7 @@ export default function CreatorPage() {
                 />
                 <Button
                   onClick={addChannel}
-                  className="flex items-center bg-gray-700 hover:bg-gray-600"
+                  className="flex items-center rounded-[10px] bg-gray-700 hover:bg-gray-600"
                   disabled={isLoading}
                 >
                   <PlusCircle className="mr-2 h-4 w-4" />

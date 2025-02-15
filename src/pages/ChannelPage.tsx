@@ -21,6 +21,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import axios from "axios";
+import { Scrollbar } from "@radix-ui/react-scroll-area";
 
 interface Video {
   id: string;
@@ -192,7 +193,6 @@ export default function ChannelPage() {
     fetchVideos();
   }, [channelId, selectedMonth, selectedYear]);
 
-  // Rest of the return statement remains the same until the Dialog
   return (
     <div className="min-h-screen bg-black text-white">
       <div className="container mx-auto p-8">
@@ -210,16 +210,16 @@ export default function ChannelPage() {
               <div className="flex gap-4">
                 <Button
                   onClick={() => setIsModalOpen(true)}
-                  className="bg-blue-600 hover:bg-blue-700"
+                  className="rounded-[10px] bg-blue-600 hover:bg-blue-700"
                 >
                   Create New Video
                 </Button>
                 <div className="flex-col">
                   <Select value={selectedYear} onValueChange={setSelectedYear}>
-                    <SelectTrigger className="w-[120px] bg-gray-800 border-gray-700 text-white">
+                    <SelectTrigger className="rounded-[10px] w-[180px] bg-gray-800 border-gray-700 text-white">
                       <SelectValue placeholder="Select year" />
                     </SelectTrigger>
-                    <SelectContent className="bg-gray-800 border-gray-700">
+                    <SelectContent className="rounded-[10px] bg-gray-800 border-gray-700">
                       {years.map((year) => (
                         <SelectItem
                           key={year}
@@ -235,10 +235,10 @@ export default function ChannelPage() {
                     value={selectedMonth}
                     onValueChange={setSelectedMonth}
                   >
-                    <SelectTrigger className="w-[180px] bg-gray-800 border-gray-700 text-white">
+                    <SelectTrigger className="mt-5 rounded-[10px] w-[180px] bg-gray-800 border-gray-700 text-white">
                       <SelectValue placeholder="Filter by month" />
                     </SelectTrigger>
-                    <SelectContent className="bg-gray-800 border-gray-700">
+                    <SelectContent className="rounded-[10px] bg-gray-800 border-gray-700">
                       <SelectItem
                         value="all"
                         className="text-white data-[highlighted]:bg-gray-700 data-[highlighted]:text-white"
@@ -274,7 +274,7 @@ export default function ChannelPage() {
                   placeholder="Enter video title"
                   value={newVideoTitle}
                   onChange={(e) => setNewVideoTitle(e.target.value)}
-                  className="bg-gray-800 border-gray-700 text-white"
+                  className="rounded-[10px] bg-gray-800 border-gray-700 text-white"
                 />
                 {error && <p className="text-sm text-red-500">{error}</p>}
               </div>
@@ -300,12 +300,12 @@ export default function ChannelPage() {
                     placeholder="Add new role"
                     value={newRole}
                     onChange={(e) => setNewRole(e.target.value)}
-                    className="bg-gray-800 border-gray-700 text-white"
+                    className="rounded-[10px] bg-gray-800 border-gray-700 text-white"
                   />
                   <Button
                     onClick={handleAddRole}
                     size="sm"
-                    className="bg-blue-600 hover:bg-blue-700"
+                    className="rounded-[10px] bg-blue-600 hover:bg-blue-700"
                   >
                     <Plus className="h-4 w-4" />
                   </Button>
@@ -316,14 +316,14 @@ export default function ChannelPage() {
               <Button
                 variant="outline"
                 onClick={() => setIsModalOpen(false)}
-                className="bg-gray-800 hover:bg-gray-700 text-white"
+                className="rounded-[10px] bg-gray-800 hover:bg-gray-700 text-white"
                 disabled={isLoading}
               >
                 Cancel
               </Button>
               <Button
                 onClick={handleCreate}
-                className="bg-blue-600 hover:bg-blue-700"
+                className="rounded-[10px] bg-blue-600 hover:bg-blue-700"
                 disabled={isLoading}
               >
                 {isLoading ? "Creating..." : "Create"}
@@ -332,7 +332,8 @@ export default function ChannelPage() {
           </DialogContent>
         </Dialog>
 
-        <ScrollArea className="h-[600px] px-4">
+        <ScrollArea className=" scroll-area h-[600px] px-4">
+          <Scrollbar />
           <div className="space-y-4 pb-4">
             {videos.length > 0 ? (
               videos.map((video) => (
@@ -361,7 +362,7 @@ export default function ChannelPage() {
                               ? "default"
                               : "secondary"
                           }
-                          className={`${
+                          className={`rounded-[10px] ${
                             video.status === "Completed"
                               ? "bg-green-600 hover:bg-green-700"
                               : "bg-yellow-600 hover:bg-yellow-700"

@@ -8,6 +8,13 @@ import {
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { useKindeAuth } from "@kinde-oss/kinde-auth-react";
 
 interface Creator {
   name: string;
@@ -20,24 +27,24 @@ export default function Home(): JSX.Element {
   const [creators, setCreators] = useState<Creator[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
-
-  const getCreators = async (): Promise<void> => {
-    try {
-      const response = await axios.get(
-        `${import.meta.env.VITE_API_URL}/creators`
-      );
-      setCreators(response.data?.data);
-      setLoading(false);
-    } catch (err) {
-      const errorMessage =
-        err instanceof Error ? err.message : "An unknown error occurred";
-      setError(errorMessage);
-      setLoading(false);
-    }
-  };
+  const { logout, user } = useKindeAuth();
+  console.log(user?.given_name);
 
   useEffect(() => {
-    getCreators();
+    (async (): Promise<void> => {
+      try {
+        const response = await axios.get(
+          `${import.meta.env.VITE_API_URL}/creators`
+        );
+        setCreators(response.data?.data);
+        setLoading(false);
+      } catch (err) {
+        const errorMessage =
+          err instanceof Error ? err.message : "An unknown error occurred";
+        setError(errorMessage);
+        setLoading(false);
+      }
+    })();
   }, []);
 
   useEffect(() => {
@@ -70,8 +77,29 @@ export default function Home(): JSX.Element {
       style={{ alignContent: "center" }}
     >
       <div className="container mx-auto px-4 py-8">
+        <div className="flex justify-end mb-4">
+          <DropdownMenu>
+            <DropdownMenuTrigger>
+              <Avatar>
+                <AvatarFallback className="bg-gray-300 dark:bg-gray-700 text-white">
+                  {user?.given_name?.[0] || "U"}
+                </AvatarFallback>
+              </Avatar>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent className="bg-gray-900 rounded-[10px]">
+              <DropdownMenuItem
+                className="text-white hover:text-white"
+                onClick={() => logout()}
+              >
+                Logout
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
         <section className="text-center mb-8">
-          <h1 className="text-4xl font-bold mb-4">Welcome to Creator Hub</h1>
+          <h1 className="text-4xl font-bold mb-4">
+            Welcome to Creator Hub Admin
+          </h1>
         </section>
         <section>
           <h2 className="text-2xl font-semibold mb-6">Featured Creators</h2>

@@ -80,6 +80,21 @@ export default function VideoPage() {
     );
   };
 
+  const handleDelete = async (roleId: string) => {
+    try {
+      // Make a DELETE request to delete the role
+      await axios.put(
+        `${import.meta.env.VITE_API_URL}/videos/${videoId}/roles`,
+        { roleId }
+      );
+
+      // Update the state to remove the deleted role
+      setRoles(roles.filter((role) => role._id !== roleId));
+    } catch (error) {
+      console.error("Error deleting role:", error);
+    }
+  };
+
   const handleSave = async (roleId: string) => {
     const roleToUpdate = roles.find((role) => role._id === roleId);
     if (!roleToUpdate) return;
@@ -187,8 +202,10 @@ export default function VideoPage() {
                 </div>
                 <Badge
                   variant={status === "Completed" ? "default" : "secondary"}
-                  className={`${
-                    status === "Completed" ? "bg-green-600" : "bg-yellow-600"
+                  className={`rounded-[10px] ${
+                    status === "Completed"
+                      ? "bg-green-600"
+                      : "bg-yellow-600 rounded-[12px]"
                   } text-white`}
                 >
                   {status}
@@ -206,7 +223,7 @@ export default function VideoPage() {
               </CardTitle>
               <Button
                 onClick={() => setShowAddRole(true)}
-                className="bg-blue-600 hover:bg-blue-700"
+                className="rounded-[10px] bg-blue-600 hover:bg-blue-700"
               >
                 <Plus className="h-4 w-4 mr-2" />
                 Add Role
@@ -218,10 +235,10 @@ export default function VideoPage() {
               {roles.map((role) => (
                 <div
                   key={role._id}
-                  className="flex items-center justify-between p-4 bg-gray-800 rounded-lg"
+                  className="rounded-[10px] flex items-center justify-between p-4 bg-gray-800 rounded-lg"
                 >
                   <span className="text-lg font-medium">{role.roleName}</span>
-                  <div className="flex items-center space-x-2">
+                  <div className=" flex items-center space-x-2">
                     {role.isEditing ? (
                       <>
                         <Input
@@ -235,7 +252,7 @@ export default function VideoPage() {
                         <Button
                           size="sm"
                           onClick={() => handleSave(role._id)}
-                          className="bg-green-600 hover:bg-green-700"
+                          className="bg-green-600 hover:bg-green-700 rounded-sm"
                         >
                           <Save className="h-4 w-4" />
                         </Button>
@@ -248,12 +265,21 @@ export default function VideoPage() {
                         <Button
                           size="sm"
                           onClick={() => handleEdit(role._id)}
-                          className="bg-blue-600 hover:bg-blue-700"
+                          className="rounded-[10px] bg-blue-600 hover:bg-blue-700"
                         >
                           <Edit2 className="h-4 w-4" />
                         </Button>
                       </>
                     )}
+                    {/* Add Delete Button */}
+                    <Button
+                      variant={"default"}
+                      size="sm"
+                      onClick={() => handleDelete(role._id)}
+                      className="rounded-[10px] bg-red-600 hover:bg-red-700"
+                    >
+                      Delete
+                    </Button>
                   </div>
                 </div>
               ))}
@@ -265,7 +291,7 @@ export default function VideoPage() {
           <div className="flex justify-end">
             <Button
               onClick={() => setShowAlert(true)}
-              className="bg-green-600 hover:bg-green-700"
+              className="rounded-[10px] bg-green-600 hover:bg-green-700"
             >
               Mark as Completed
             </Button>
@@ -296,7 +322,7 @@ export default function VideoPage() {
         </AlertDialog>
 
         <AlertDialog open={showAddRole} onOpenChange={setShowAddRole}>
-          <AlertDialogContent className="bg-gray-900 text-white">
+          <AlertDialogContent className="rounded-[10px] bg-gray-900 text-white">
             <AlertDialogHeader>
               <AlertDialogTitle>Add New Role</AlertDialogTitle>
               <AlertDialogDescription className="text-gray-400">
@@ -312,12 +338,12 @@ export default function VideoPage() {
               />
             </div>
             <AlertDialogFooter>
-              <AlertDialogCancel className="bg-gray-800 text-white hover:bg-gray-700">
+              <AlertDialogCancel className="rounded-[10px] bg-gray-800 text-white hover:bg-gray-700">
                 Cancel
               </AlertDialogCancel>
               <AlertDialogAction
                 onClick={handleAddRole}
-                className="bg-green-600 hover:bg-green-700"
+                className="rounded-[10px] bg-green-600 hover:bg-green-700"
               >
                 Add Role
               </AlertDialogAction>
