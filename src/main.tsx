@@ -9,8 +9,14 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
     <KindeProvider
       clientId="40365692ac2e43109a311ebffac93e75"
       domain="https://creatorhubvance.kinde.com"
-      redirectUri="http://localhost:5173"
-      logoutUri="http://localhost:5173"
+      redirectUri={
+        import.meta.env.VITE_REDIRECT_URI ||
+        "https://creator-hub-client.vercel.app"
+      }
+      logoutUri={
+        import.meta.env.VITE_LOGOUT_URI ||
+        "https://creator-hub-client.vercel.app"
+      }
     >
       <App />
     </KindeProvider>
