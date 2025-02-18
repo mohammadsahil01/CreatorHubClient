@@ -23,7 +23,7 @@ interface Creator {
 
 export default function Home(): JSX.Element {
   const navigate = useNavigate();
-  const [theme, setTheme] = useState<"light" | "dark">("dark");
+  const [theme] = useState<"light" | "dark">("dark");
   const [creators, setCreators] = useState<Creator[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);

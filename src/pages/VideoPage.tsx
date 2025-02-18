@@ -26,7 +26,7 @@ interface Role {
 }
 
 export default function VideoPage() {
-  const { creatorName, name, videoId } = useParams();
+  const { name, videoId } = useParams();
   const [showAlert, setShowAlert] = useState(false);
   const [showAddRole, setShowAddRole] = useState(false);
   const [newRoleName, setNewRoleName] = useState("");
